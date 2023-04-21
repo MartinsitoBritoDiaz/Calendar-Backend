@@ -1,45 +1,80 @@
 const { response } = require("express");
-const { validationResult } = require("express-validator");
+const bcrypt = require("bcryptjs");
+const User = require("../models/User");
 
-const createUser = (req, res = response) => {
-  const { name, email, password } = req.body;
+const createUser = async (req, res = response) => {
+  const { email, password } = req.body;
 
-  //Error handler
-  const errors = validationResult( req );
-  if( !errors.isEmpty() ){
-    return res.status(400).json({
+  try {
+    let user = await User.findOne({ email });
+
+    if (user) {
+      return res.status(400).json({
         ok: false,
-        errors: errors.mapped()
-    })
-  }
+        msg: "There is an user with this email",
+      });
+    }
 
-  res.status(201).json({
-    ok: true,
-    msg: "new",
-    name,
-    email,
-    password
-  });
+    user = new User(req.body);
+
+    //Encode password
+    const salt = bcrypt.genSaltSync();
+    user.password = bcrypt.hashSync(password, salt);
+
+    await user.save();
+
+    res.status(201).json({
+      ok: true,
+      uid: user.id,
+      name: user.name,
+      password: user.password,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      ok: false,
+      msg: "Error while saving data",
+    });
+  }
 };
 
-const login = (req, res = response) => {
+const login = async (req, res = response) => {
   const { email, password } = req.body;
-  
-  //Error handler
-  const errors = validationResult( req );
-  if( !errors.isEmpty() ){
-    return res.status(400).json({
-        ok: false,
-        errors: errors.mapped()
-    })
-  }
 
-  res.json({
-    ok: true,
-    msg: "login",
-    email,
-    password
-  });
+  try {
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(400).json({
+        ok: false,
+        msg: "Verify user and password",
+      });
+    }
+
+    //Check password
+    const validPassword = bcrypt.compareSync(password, user.password);
+
+    if (!validPassword) {
+      return res.status(400).json({
+        ok: false,
+        msg: "Verify user and password",
+      });
+    }
+
+    //Generate JWT
+
+    res.json({
+      ok: true,
+      uid: user.id,
+      name: user.name,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      ok: false,
+      msg: "Error while saving data",
+    });
+  }
 };
 
 const renewToken = (req, res = response) => {
@@ -49,7 +84,7 @@ const renewToken = (req, res = response) => {
     msg: "renew",
     name,
     email,
-    password
+    password,
   });
 };
 
