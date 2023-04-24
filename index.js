@@ -10,7 +10,9 @@ const app = express();
 dbConnection(); 
 
 //CORS
-app.use(cors());
+app.use(cors({
+    origin: '*',
+}));
 
 //Public Directory
 app.use( express.static('public') );
