@@ -12,16 +12,18 @@ const validateJWT = async (req, res = response, next) => {
     });
   }
 
+
   try {
-    jwt.verify(token, process.env.SECRET_JWT_SEED, (error, data) => {
-      if (error) {
-        throw error;
-      }
-      const { uid, name } = data;
-      req.uid = uid;
-      req.name = name;
-    });
-  } catch (error) {
+        
+    const { uid, name } = jwt.verify(
+        token,
+        process.env.SECRET_JWT_SEED
+    );
+
+    req.uid = uid;
+    req.name = name;
+
+} catch (error) {
     return res.status(401).json({
       ok: false,
       msg: "Invalid token",
